@@ -29,7 +29,7 @@
     .btn-primary{background:#0366d6;color:white}
     .btn-ghost{background:transparent;color:#0366d6;border:1px solid #0366d6}
     .qty-controls{display:flex;align-items:center;gap:4px}
-    .input{width:100%;padding:6px;margin-top:6px;border:1px solid #ccc;border-radius:6px}
+    .input{width:100%;padding:6px;margin-top:6px;border:1px solid #ccc;border-radius:6px;box-sizing:border-box}
     .footer{margin-top:8px;display:flex;justify-content:space-between;align-items:center;gap:6px;flex-wrap:wrap}
     .empty{color:#777;font-size:13px;margin-top:6px}
     .search-results{
@@ -39,9 +39,10 @@
       border-radius:6px;
       max-height:300px;
       overflow-y:auto;
-      width:calc(100% - 30px);
+      width:calc(100% - 14px);
       z-index:100;
       box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      margin-top:2px;
     }
     .search-category{
       background:#f8f9fa;
@@ -107,21 +108,13 @@
       background:#28a745;
       color:white;
     }
-    .btn-cocina{
-      background:#ff6b35;
-      color:white;
-    }
-    .btn-barra{
-      background:#4ecdc4;
-      color:white;
-    }
   </style>
 </head>
 <body>
   <h1>Página de Mesero</h1>
 
   <div class="top-buttons">
-    <button class="top-btn btn-add-mesa" onclick="agregarNuevaMesa()">
+    <button class="top-btn btn-add-mesa" id="btnAgregarMesa">
       ➕ Agregar Mesa
     </button>
   </div>
@@ -167,6 +160,11 @@
 
     const contenedor = document.getElementById("mesas");
 
+    // CALCULAR TOTAL
+    function calcTotal(mesa) {
+      return mesa.orders.reduce((sum, o) => sum + (o.qty * o.price), 0);
+    }
+
     function renderMesas() {
       contenedor.innerHTML = "";
       
@@ -200,7 +198,7 @@
           </div>
           <div class="add-section">
             <div class="search-container">
-              <input class="input buscar" placeholder="🔍 Buscar producto..." autocomplete="off">
+              <input class="input buscar" placeholder="🔍 Buscar producto..." autocomplete="off" style="margin-top:0">
               <div class="search-results" style="display:none"></div>
             </div>
             <input class="input cantidad" type="number" min="1" value="1" placeholder="Cantidad">
@@ -259,31 +257,25 @@
               tr.innerHTML = `
                 <td>
                   <div class="qty-controls">
-                    <button class="btn btn-ghost btn-dec" data-idx="${idx}">-</button>
+                    <button class="btn btn-ghost btn-dec">-</button>
                     <span>${orden.qty}</span>
-                    <button class="btn btn-ghost btn-inc" data-idx="${idx}">+</button>
+                    <button class="btn btn-ghost btn-inc">+</button>
                   </div>
                 </td>
                 <td>${orden.name}</td>
                 <td>$${(orden.qty * orden.price).toFixed(2)}</td>
-                <td><button class="btn btn-ghost btn-del" data-idx="${idx}">Eliminar</button></td>
+                <td><button class="btn btn-ghost btn-del">Eliminar</button></td>
               `;
               
               tbody.appendChild(tr);
-            });
 
-            // Event listeners para botones de la tabla
-            tbody.querySelectorAll(".btn-inc").forEach(btn => {
-              btn.addEventListener("click", (e) => {
-                const idx = parseInt(e.target.getAttribute("data-idx"));
+              // Event listeners individuales
+              tr.querySelector(".btn-inc").addEventListener("click", () => {
                 mesa.orders[idx].qty++;
                 renderOrdenes();
               });
-            });
 
-            tbody.querySelectorAll(".btn-dec").forEach(btn => {
-              btn.addEventListener("click", (e) => {
-                const idx = parseInt(e.target.getAttribute("data-idx"));
+              tr.querySelector(".btn-dec").addEventListener("click", () => {
                 if (mesa.orders[idx].qty > 1) {
                   mesa.orders[idx].qty--;
                   renderOrdenes();
@@ -294,11 +286,8 @@
                   }
                 }
               });
-            });
 
-            tbody.querySelectorAll(".btn-del").forEach(btn => {
-              btn.addEventListener("click", (e) => {
-                const idx = parseInt(e.target.getAttribute("data-idx"));
+              tr.querySelector(".btn-del").addEventListener("click", () => {
                 if (confirm("¿Eliminar platillo?")) {
                   mesa.orders.splice(idx, 1);
                   renderOrdenes();
@@ -393,7 +382,7 @@
           }
 
           buscarInput.value = "";
-          cantidadInput.value = 1;
+          cantidadInput.value = "1";
           searchResults.style.display = "none";
           renderOrdenes();
         }
@@ -503,6 +492,19 @@
                     color: #999;
                     padding: 40px 0;
                   }
+                  .btn-print {
+                    position: fixed;
+                    bottom: 20px;
+                    right: 20px;
+                    background: #007bff;
+                    color: white;
+                    padding: 15px 30px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-family: Arial;
+                    border: none;
+                    font-size: 16px;
+                  }
                   @media print {
                     body {
                       display: block;
@@ -514,6 +516,9 @@
                     }
                     .seccion:last-child {
                       page-break-after: auto;
+                    }
+                    .btn-print {
+                      display: none;
                     }
                   }
                 </style>
@@ -561,29 +566,18 @@
 
           w.document.write(`
                 </div>
+                <button class="btn-print" onclick="window.print()">🖨️ IMPRIMIR</button>
               </body>
             </html>
           `);
-
-          w.document.write(`
-            <div style="position: fixed; bottom: 20px; right: 20px; background: #007bff; color: white; padding: 15px 30px; border-radius: 5px; cursor: pointer; font-family: Arial;" onclick="window.print()">
-              🖨️ IMPRIMIR
-            </div>
-          `);
           
           w.document.close();
-          setTimeout(() => w.print(), 250);
         });
       });
     }
 
-    // CALCULAR TOTAL
-    function calcTotal(mesa) {
-      return mesa.orders.reduce((sum, o) => sum + (o.qty * o.price), 0);
-    }
-
     // AGREGAR NUEVA MESA
-    function agregarNuevaMesa() {
+    document.getElementById("btnAgregarMesa").addEventListener("click", () => {
       const nuevoId = mesas.length > 0 ? Math.max(...mesas.map(m => m.id)) + 1 : 1;
       mesas.push({
         id: nuevoId,
@@ -591,7 +585,7 @@
         orders: []
       });
       renderMesas();
-    }
+    });
 
     // INICIAR
     renderMesas();
